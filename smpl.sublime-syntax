@@ -1,0 +1,126 @@
+%YAML 1.2
+---
+# See http://www.sublimetext.com/docs/3/syntax.html
+file_extensions:
+  - smpl
+scope: source.smpl
+
+variables:
+  name: \b[a-zA-Z][a-zA-Z0-9]*\b
+  value: (?<=\s).+(?=\s+)
+  primitives: \b(YARN|NUMBR|NUMBAR|TROOF|BUKKIT|NOOB)\b
+  booleans: \b(WIN|FAIL)\b
+  startend: \b(HAI(?= [0-9.]+)|KTHXBYE)\b
+  libraries: \b(STDLIB|SOCKS|STDIO|STRING)\b
+
+  conditionals: \b(O RLY\?|YA RLY|MEBBE|NO WAI|OIC|MKAY),?(?=\s+)
+  switch: \b(WTF\?|OMG(WTF)?|OIC)
+  loops: \b(IM IN YR|IM OUTTA YR|YR|TIL|WILE|UPPIN|NERFIN|GTFO)\b
+  functions: \b(HOW IZ( I)?|(AN |FOUND )?YR|GTFO|IF U SAY SO|I IZ|MKAY)\b
+  objectdeclaration: \b(I HAS A(?=\s+{{name}})|ITZ(?=\s+{{value}})|R)\b
+  bukkitdeclaration: \b(O HAI IM(?=\s+{{name}})|(I )?HAS A(?=\s+{{name}}.*[^\w]ITZ[^\w])|ITZ( A)?(?=\s+{{primitives}})|ITZ LIEK A(?=\s+{{name}})|IZ(?=\s+{{name}})|KTHX|ME IZ(?=\s+{{name}}))\b
+  declaration: '{{bukkitdeclaration}}|{{objectdeclaration}}|\?'
+
+  mathoperators: \b(SUM|DIFF|PRODUKT|QUOSHUNT|MOD|BIGGR|SMALLR) OF\b
+  booleanoperators: \b((BOTH|EITHER|WON|ALL|ANY)\s++OF|NOT|AN)\b
+  comparisonoperators: \b(BOTH SAEM|DIFFRINT)\b
+  concatoperator: \b(SMOOSH|MKAY)\b
+  castingoperators: \b((R )?MAEK|A(?=\s+{{primitives}})|IS NOW A|SRS)\b
+  fileoperators: \b(OPEN|CLOSE|LUK|DIAF)\s+YR(?=\s+{{value}})\b
+  stringoperators: \b(LEN|AT)\s+YR(?=\s+{{value}})\b
+  socketoperators: \b(PUT|BIND|LISTN|GET|AND|RESOLV)\s+YR(?=\s+{{value}})\b
+  standardoperators: \b(MIX|BLOW)\s+YR(?=\s+{{value}})\b
+
+  operators: '{{mathoperators}}|{{booleanoperators}}|{{comparisonoperators}}|{{castingoperators}}|{{concatoperator}}|{{fileoperators}}|{{stringoperators}}|{{socketoperators}}|{{standardoperators}}'
+
+  keywords: '{{declaration}}|{{conditionals}}|{{switch}}|{{loops}}|{{functions}}|{{operators}}'
+
+contexts:
+  # The prototype context is prepended to all contexts but those setting
+  # meta_include_prototype: false.
+  prototype:
+    - include: comments
+
+  main:
+    - include: keywords
+    - include: numbers
+    - include: strings
+    - include: functions
+    - include: imports
+    - include: object-types
+
+
+  keywords:
+    - match: '{{keywords}}|{{startend}}'
+      scope: keyword.control.smpl
+    - match: \!
+      scope: variable.parameter.smpl
+    - match: '\b(ME''Z(?=\s+{{name}})|''Z)\b'
+      scope: variable.language.smpl
+    - match: \.\.\.
+      scope: punctuation.variable.continuation.line
+
+  numbers:
+    - match: '\b(-)?[0-9.]+\b'
+      scope: constant.numeric.smpl
+
+  strings:
+    # Strings begin and end with quotes, and use backslashes as an escape
+    # character.
+    - match: '"'
+      scope: punctuation.definition.string.begin.smpl
+      push: inside_string
+
+  functions:
+    - match: \b((IN)?VISIBLE|GIMMEH)\b
+      scope: support.function.builtin.smpl
+
+  inside_string:
+    - meta_include_prototype: false
+    - meta_scope: string.quoted.double.smpl
+    - match: (\:\(.+\)|\:\{.+\}|\:\[.+\]|\:.)
+      scope: constant.character.escape.smpl
+    - match: '"'
+      scope: punctuation.definition.string.end.smpl
+      pop: true
+
+  imports:
+    - match: \bCAN HAS\b
+      scope: keyword.other.import.smpl
+      push:
+        - meta_scope: meta.import.smpl
+        - match: '[A-Z]*'
+          scope: support.class.import.smpl
+          captures:
+            1: punctuation.accessor.dot.smpl
+        - match: \?
+          scope: punctuation.terminator.smpl
+            keyword.control.smpl
+          pop: true
+        - match: (?=\n)
+          pop: true
+    - match: '{{libraries}}'
+      scope: support.class.import.smpl
+
+  object-types:
+    - match: '{{primitives}}'
+      scope: storage.type.primitive.smpl
+    - match: '{{booleans}}'
+      scope: constant.language.smpl
+
+  comments:
+    - match: OBTW
+      scope: punctuation.definition.comment.smpl
+      push:
+        - meta_scope: comment.block.smpl
+        - match: TLDR
+          scope: punctuation.definition.comment.smpl
+          pop: true
+    - match: BTW
+      scope: punctuation.definition.comment.smpl
+      push:
+        - meta_scope: comment.line.double-slash.smpl
+        - match: $\n?
+          pop: true
+        - match: '(?=%>)'
+          pop: true
