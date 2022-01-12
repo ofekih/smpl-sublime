@@ -1,126 +1,255 @@
 %YAML 1.2
 ---
-# See http://www.sublimetext.com/docs/3/syntax.html
+name: SMPL
 file_extensions:
   - smpl
 scope: source.smpl
 
 variables:
-  name: \b[a-zA-Z][a-zA-Z0-9]*\b
-  value: (?<=\s).+(?=\s+)
-  primitives: \b(YARN|NUMBR|NUMBAR|TROOF|BUKKIT|NOOB)\b
-  booleans: \b(WIN|FAIL)\b
-  startend: \b(HAI(?= [0-9.]+)|KTHXBYE)\b
-  libraries: \b(STDLIB|SOCKS|STDIO|STRING)\b
+  letter: '[[:alpha:]]'
+  digit: '[0-9]'
+  relop: '==|!=|<|<=|>|>='
 
-  conditionals: \b(O RLY\?|YA RLY|MEBBE|NO WAI|OIC|MKAY),?(?=\s+)
-  switch: \b(WTF\?|OMG(WTF)?|OIC)
-  loops: \b(IM IN YR|IM OUTTA YR|YR|TIL|WILE|UPPIN|NERFIN|GTFO)\b
-  functions: \b(HOW IZ( I)?|(AN |FOUND )?YR|GTFO|IF U SAY SO|I IZ|MKAY)\b
-  objectdeclaration: \b(I HAS A(?=\s+{{name}})|ITZ(?=\s+{{value}})|R)\b
-  bukkitdeclaration: \b(O HAI IM(?=\s+{{name}})|(I )?HAS A(?=\s+{{name}}.*[^\w]ITZ[^\w])|ITZ( A)?(?=\s+{{primitives}})|ITZ LIEK A(?=\s+{{name}})|IZ(?=\s+{{name}})|KTHX|ME IZ(?=\s+{{name}}))\b
-  declaration: '{{bukkitdeclaration}}|{{objectdeclaration}}|\?'
+  endexpr: '{{relop}}|then|do'
+  endstats: 'else|fi|od'
 
-  mathoperators: \b(SUM|DIFF|PRODUKT|QUOSHUNT|MOD|BIGGR|SMALLR) OF\b
-  booleanoperators: \b((BOTH|EITHER|WON|ALL|ANY)\s++OF|NOT|AN)\b
-  comparisonoperators: \b(BOTH SAEM|DIFFRINT)\b
-  concatoperator: \b(SMOOSH|MKAY)\b
-  castingoperators: \b((R )?MAEK|A(?=\s+{{primitives}})|IS NOW A|SRS)\b
-  fileoperators: \b(OPEN|CLOSE|LUK|DIAF)\s+YR(?=\s+{{value}})\b
-  stringoperators: \b(LEN|AT)\s+YR(?=\s+{{value}})\b
-  socketoperators: \b(PUT|BIND|LISTN|GET|AND|RESOLV)\s+YR(?=\s+{{value}})\b
-  standardoperators: \b(MIX|BLOW)\s+YR(?=\s+{{value}})\b
+  ident: '{{letter}}[{{letter}}{{digit}}]*'
+  number: '{{digit}}+'
 
-  operators: '{{mathoperators}}|{{booleanoperators}}|{{comparisonoperators}}|{{castingoperators}}|{{concatoperator}}|{{fileoperators}}|{{stringoperators}}|{{socketoperators}}|{{standardoperators}}'
-
-  keywords: '{{declaration}}|{{conditionals}}|{{switch}}|{{loops}}|{{functions}}|{{operators}}'
+  builtin_functions: \b(InputNum|OutputNum|OutputNewLine)\b
+  bultin_types: \b(var|array)\b
 
 contexts:
-  # The prototype context is prepended to all contexts but those setting
-  # meta_include_prototype: false.
-  prototype:
-    - include: comments
-
   main:
-    - include: keywords
-    - include: numbers
-    - include: strings
-    - include: functions
-    - include: imports
-    - include: object-types
-
-
-  keywords:
-    - match: '{{keywords}}|{{startend}}'
-      scope: keyword.control.smpl
-    - match: \!
-      scope: variable.parameter.smpl
-    - match: '\b(ME''Z(?=\s+{{name}})|''Z)\b'
-      scope: variable.language.smpl
-    - match: \.\.\.
-      scope: punctuation.variable.continuation.line
-
-  numbers:
-    - match: '\b(-)?[0-9.]+\b'
-      scope: constant.numeric.smpl
-
-  strings:
-    # Strings begin and end with quotes, and use backslashes as an escape
-    # character.
-    - match: '"'
-      scope: punctuation.definition.string.begin.smpl
-      push: inside_string
-
-  functions:
-    - match: \b((IN)?VISIBLE|GIMMEH)\b
-      scope: support.function.builtin.smpl
-
-  inside_string:
     - meta_include_prototype: false
-    - meta_scope: string.quoted.double.smpl
-    - match: (\:\(.+\)|\:\{.+\}|\:\[.+\]|\:.)
-      scope: constant.character.escape.smpl
-    - match: '"'
-      scope: punctuation.definition.string.end.smpl
+    - match: ''
+      push: [computation]
+
+  computation:
+    - match: \bmain\b
+      scope: keyword.control.main.smpl
+      push:
+        - include: vardecl
+        - include: funcdecl
+        - match: '{'
+          scope: punctuation.section.block.begin.smpl
+          push: [period, statsequence]
+          pop: true
       pop: true
 
-  imports:
-    - match: \bCAN HAS\b
-      scope: keyword.other.import.smpl
+  period:
+    - match: '\.'
+      scope: punctuation.terminator.smpl
+      pop: true
+
+  vardecl:
+    - match: \bvar\b
+      scope: storage.type
+      push: [varlist]
+    - match: \barray\b\s*
+      scope: storage.type
+      push: [varlist, brackets]
+
+  brackets:
+    - match: \[
+      scope: punctuation.section.brackets.begin.smpl
       push:
-        - meta_scope: meta.import.smpl
-        - match: '[A-Z]*'
-          scope: support.class.import.smpl
-          captures:
-            1: punctuation.accessor.dot.smpl
-        - match: \?
+        - meta_scope: meta.brackets.smpl
+        - match: \]
+          scope: punctuation.section.brackets.end.smpl
+          pop: true
+        - match: '{{number}}'
+          scope: constant.numeric.integer.smpl
+    - match: (?!\[)
+      pop: true
+
+  varlist:
+  - match: '\b{{ident}}'
+    scope: source.smpl
+  - match: ','
+    scope: punctuation.separator.smpl
+  - match: ;
+    scope: punctuation.terminator.smpl
+    pop: true
+
+  funcdecl:
+    - match: \bvoid\b
+      scope: storage.modifier.void.smpl meta.function.return-type.smpl
+    - match: \bfunction\b
+      scope: storage.type.function.smpl keyword.declaration.function.smpl
+      push: [funcbody, funcparams]
+
+  funcparams:
+    - match: '\b{{ident}}\b'
+      scope: entity.name.function.smpl
+      push:
+        - match: \(
+          scope: meta.function.parameters.smpl punctuation.section.parameters.begin.smpl
+          push:
+            - meta_content_scope: meta.function.parameters.smpl
+            - meta_scope: meta.group.smpl
+            - match: '\b{{ident}}\b'
+              scope: variable.parameter.smpl
+            - match: ','
+              scope: punctuation.separator.parameters.smpl
+            - match: \)
+              scope: punctuation.section.parameters.end.smpl
+              pop: true
+        - match: ;
           scope: punctuation.terminator.smpl
-            keyword.control.smpl
           pop: true
-        - match: (?=\n)
-          pop: true
-    - match: '{{libraries}}'
-      scope: support.class.import.smpl
+      pop: true
 
-  object-types:
-    - match: '{{primitives}}'
-      scope: storage.type.primitive.smpl
-    - match: '{{booleans}}'
-      scope: constant.language.smpl
 
-  comments:
-    - match: OBTW
-      scope: punctuation.definition.comment.smpl
+  funcbody:
+    - meta_content_scope: meta.function.smpl
+    - match: '(?={{bultin_types}})'
+    - include: vardecl
+    - match: '\{'
+      scope: punctuation.section.block.begin.smpl
       push:
-        - meta_scope: comment.block.smpl
-        - match: TLDR
-          scope: punctuation.definition.comment.smpl
-          pop: true
-    - match: BTW
-      scope: punctuation.definition.comment.smpl
+        - meta_content_scope: meta.function.smpl meta.block.smpl
+        - include: statsequence
+    - match: ;
+      scope: punctuation.terminator.smpl
+      pop: true
+
+  statsequence:
+    - match: '(?={{endstats}})'
+      pop: true
+    - include: statement
+    - match: '}'
+      scope: punctuation.section.block.end.smpl
+      pop: true
+
+  statement:
+    - include: assignment
+    - include: funccall
+    - include: ifstatement
+    - include: whilestatement
+    - include: returnstatement
+    - match: ;
+      scope: punctuation.terminator.smpl
+
+  returnstatement:
+    - match: \breturn\b\s*
+      scope: keyword.control.flow.return.smpl
       push:
-        - meta_scope: comment.line.double-slash.smpl
-        - match: $\n?
+        - match: '(?=;|\n)'
           pop: true
-        - match: '(?=%>)'
+        - match: '(?!;|\n)'
+          push: [expression]
           pop: true
+
+  whilestatement:
+    - match: \bwhile\b
+      scope: keyword.control.loop.while.smpl
+      push: [od, statsequence, do, relation]
+
+  do:
+    - match: \bdo\b
+      scope: keyword.control.loop.do.smpl
+      pop: true
+
+  od:
+    - match: \bod\b
+      scope: keyword.control.loop.od.smpl
+      pop: true
+
+  ifstatement:
+    - match: \bif\b
+      scope: keyword.control.conditional.if.smpl
+      push: [fi, statsequence, else, statsequence, then, relation]
+
+  relation:
+    - match: ''
+      set: [expression, relop, expression]
+
+  then:
+    - match: \bthen\b
+      scope: keyword.control.conditional.then.smpl
+      pop: true
+
+  else:
+    - match: \belse\b
+      scope: keyword.control.conditional.else.smpl
+      pop: true
+    - match: (?=\bfi\b)
+      pop: true
+
+  fi:
+    - match: \bfi\b
+      scope: keyword.control.conditional.fi.smpl
+      pop: true
+
+  relop:
+    - match: '{{relop}}'
+      scope: keyword.operator.comparison.smpl
+      pop: true
+
+  assignment:
+    - match: \blet\b
+      scope: keyword.declaration.assignment
+      push: [expression, arrow, designator]
+
+  arrow:
+    - match: '<-'
+      scope: storage.modifier.smpl
+      pop: true
+
+  expression:
+    - match: '(?={{endexpr}}|{{endstats}})'
+      pop: true
+    - include: term
+    - match: \+|\-
+      scope: keyword.operator.arithmetic.smpl
+    - match: ;
+      scope: punctuation.terminator.smpl
+      pop: true
+
+  term:
+    - include: factor
+    - match: \*|\/
+      scope: keyword.operator.arithmetic.smpl
+
+  factor:
+    - include: funccall
+    - match: '\b{{ident}}\b\s*'
+      push: [brackets]
+    - match: '\b{{number}}\b'
+      scope: constant.numeric.integer.smpl
+    - match: \(
+      scope: punctuation.section.group.begin.smpl
+      push:
+        - meta_scope: meta.group.smpl
+        - include: expression
+        - match: \)
+          scope: punctuation.section.group.end.smpl
+          pop: true
+
+  funccall:
+    - match: \bcall\b
+      scope: keyword.operator.function-call.smpl
+      push:
+        - match: '\b{{ident}}\b\s*'
+          scope: variable.function.smpl
+          push:
+            - match: \(
+              scope: meta.function.arguments.smpl punctuation.section.arguments.begin.smpl
+              push:
+                - meta_content_scope: meta.function.arguments.smpl
+                - meta_scope: meta.group.smpl
+                - include: expression
+                - match: ','
+                  scope: punctuation.separator.arguments.smpl
+                - match: \)
+                  scope: punctuation.section.arguments.end.smpl
+                  pop: true
+            - match: (?!\()
+              pop: true
+          pop: true
+
+  designator:
+    - match: '\b{{ident}}\b\s*'
+      push: [brackets]
+      pop: true
