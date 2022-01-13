@@ -17,7 +17,6 @@ variables:
   number: '{{digit}}+'
 
   builtin_functions: \b(InputNum|OutputNum|OutputNewLine)\b
-  bultin_types: \b(var|array)\b
 
 contexts:
   main:
@@ -98,12 +97,13 @@ contexts:
         - match: ;
           scope: punctuation.terminator.smpl
           pop: true
+        - match: '\n'
+          pop: true
       pop: true
 
 
   funcbody:
     - meta_content_scope: meta.function.smpl
-    - match: '(?={{bultin_types}})'
     - include: vardecl
     - match: '\{'
       scope: punctuation.section.block.begin.smpl
@@ -198,7 +198,7 @@ contexts:
       pop: true
 
   expression:
-    - match: '(?={{endexpr}}|{{endstats}})'
+    - match: '(?={{endexpr}}|{{endstats}})|\n'
       pop: true
     - include: term
     - match: \+|\-
@@ -231,23 +231,29 @@ contexts:
     - match: \bcall\b
       scope: keyword.operator.function-call.smpl
       push:
+        - match: '{{builtin_functions}}'
+          scope: support.function.builtin.smpl
+          push: [funcargs]
+          pop: true
         - match: '\b{{ident}}\b\s*'
           scope: variable.function.smpl
-          push:
-            - match: \(
-              scope: meta.function.arguments.smpl punctuation.section.arguments.begin.smpl
-              push:
-                - meta_content_scope: meta.function.arguments.smpl
-                - meta_scope: meta.group.smpl
-                - include: expression
-                - match: ','
-                  scope: punctuation.separator.arguments.smpl
-                - match: \)
-                  scope: punctuation.section.arguments.end.smpl
-                  pop: true
-            - match: (?!\()
-              pop: true
+          push: [funcargs]
           pop: true
+
+  funcargs:
+    - match: \(
+      scope: meta.function.arguments.smpl punctuation.section.arguments.begin.smpl
+      push:
+        - meta_content_scope: meta.function.arguments.smpl
+        - meta_scope: meta.group.smpl
+        - include: expression
+        - match: ','
+          scope: punctuation.separator.arguments.smpl
+        - match: \)
+          scope: punctuation.section.arguments.end.smpl
+          pop: true
+    - match: (?!\()
+      pop: true
 
   designator:
     - match: '\b{{ident}}\b\s*'
