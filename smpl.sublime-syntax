@@ -8,7 +8,7 @@ scope: source.smpl
 variables:
   letter: '[[:alpha:]]'
   digit: '[0-9]'
-  relop: '==|!=|<|<=|>|>='
+  relop: '==|!=|<=|<|>=|>'
 
   endexpr: '{{relop}}|then|do'
   endstats: 'else|fi|od'
